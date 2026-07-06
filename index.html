@@ -115,23 +115,44 @@
             setupToggleButtons();
             
             if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    async (position) => {
-                        const lat = position.coords.latitude;
-                        const lon = position.coords.longitude;
-                        
-                        document.getElementById('coords-display').innerText = `Lat: ${lat.toFixed(4)} / Lon: ${lon.toFixed(4)}`;
-                        await fetchWeather(lat, lon);
-                    },
-                    (error) => {
-                        showError(`Location Denied: ${error.message}. Please check site settings permissions.`);
-                    },
-                    { enableHighAccuracy: true, timeout: 10000 }
-                );
+                requestLocation();
             } else {
                 showError("Geolocation setup is completely unsupported by this device browser.");
             }
         });
+
+        function requestLocation() {
+            const successCallback = async (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                document.getElementById('coords-display').innerText = `Lat: ${lat.toFixed(4)} / Lon: ${lon.toFixed(4)}`;
+                await fetchWeather(lat, lon);
+            };
+
+            const errorCallback = (error) => {
+                // Error code 3 represents a TIMEOUT
+                if (error.code === 3) {
+                    // Fallback: Try again without requesting high accuracy GPS
+                    navigator.geolocation.getCurrentPosition(
+                        successCallback,
+                        (fallbackError) => {
+                            showError(`Location Failed: ${fallbackError.message}.`);
+                        },
+                        { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 } // Allowed to use older, cached approximate location
+                    );
+                } else {
+                    // Handles actual user denials (Error code 1)
+                    showError(`Location Denied: ${error.message}. Please check site settings permissions.`);
+                }
+            };
+
+            // Attempt 1: Try high accuracy with a shorter 6-second timeout
+            navigator.geolocation.getCurrentPosition(
+                successCallback,
+                errorCallback,
+                { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+            );
+        }
 
         function setupToggleButtons() {
             const btn12h = document.getElementById('toggle-12h');
