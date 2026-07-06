@@ -125,8 +125,15 @@
             const successCallback = async (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
+                
+                // Keep coordinates as a temporary placeholder while fetching the real name
                 document.getElementById('coords-display').innerText = `Lat: ${lat.toFixed(4)} / Lon: ${lon.toFixed(4)}`;
-                await fetchWeather(lat, lon);
+                
+                // Fire both API requests simultaneously to save loading time
+                await Promise.all([
+                    fetchWeather(lat, lon),
+                    fetchLocationName(lat, lon)
+                ]);
             };
 
             const errorCallback = (error) => {
