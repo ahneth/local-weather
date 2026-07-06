@@ -175,6 +175,33 @@
             });
         }
 
+        async function fetchLocationName(lat, lon) {
+            // OpenStreetMap's free reverse geocoding endpoint
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data && data.address) {
+                    const addr = data.address;
+                    // Cascade from most specific local area to broader city
+                    const localName = addr.neighbourhood || addr.suburb || addr.city_district || addr.city || addr.town || addr.village;
+                    const regionName = addr.city || addr.state || addr.country;
+                    
+                    // If localName and regionName are the same, just show one
+                    if (localName === regionName) {
+                        document.getElementById('coords-display').innerText = localName;
+                    } else {
+                        document.getElementById('coords-display').innerText = `${localName}, ${regionName}`;
+                    }
+                }
+            } catch (err) {
+                console.warn("Could not fetch location name, falling back to coordinates.");
+                // Keep the coordinates displayed if the API fails
+            }
+        }
+
         async function fetchWeather(lat, lon) {
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
             
