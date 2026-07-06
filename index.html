@@ -7,11 +7,10 @@
     <!-- Stable Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Hide scrollbar for Chrome, Safari and Opera */
+        /* Hide scrollbar for clean UI while maintaining scroll functionality */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
-        /* Hide scrollbar for IE, Edge and Firefox */
         .no-scrollbar {
             -ms-overflow-style: none;  /* IE and Edge */
             scrollbar-width: none;  /* Firefox */
@@ -20,8 +19,8 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex justify-center">
 
-    <!-- Mobile Container -->
-    <div class="w-full max-w-md bg-slate-900 min-h-screen shadow-2xl flex flex-col p-6 relative overflow-hidden">
+    <!-- Mobile Container (Simulates phone viewport constraint) -->
+    <div class="w-full max-w-md bg-slate-900 min-h-screen h-screen shadow-2xl flex flex-col p-5 relative overflow-hidden">
         
         <!-- Loading / Permission Screen -->
         <div id="loading-screen" class="absolute inset-0 bg-slate-950 z-50 flex flex-col items-center justify-center p-6 text-center transition-opacity duration-300">
@@ -32,52 +31,52 @@
         </div>
 
         <!-- Header -->
-        <header class="mb-6 flex justify-between items-center">
+        <header class="mb-4 flex justify-between items-center shrink-0">
             <div>
-                <h1 class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                <h1 class="text-xl font-black tracking-tight text-white flex items-center gap-2">
                     📍 Local Weather
                 </h1>
-                <p id="coords-display" class="text-xs text-slate-400 mt-1">Fetching coordinates...</p>
+                <p id="coords-display" class="text-[11px] text-slate-400 mt-0.5">Fetching coordinates...</p>
             </div>
-            <div id="current-badge" class="bg-blue-600/20 text-blue-400 text-xs px-3 py-1.5 rounded-full font-semibold border border-blue-500/30">
+            <div id="current-badge" class="bg-blue-600/20 text-blue-400 text-[11px] px-2.5 py-1 rounded-full font-semibold border border-blue-500/30">
                 Live GPS
             </div>
         </header>
 
         <!-- Current Weather Hero Card -->
-        <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-6 shadow-lg mb-6 flex items-center justify-between">
+        <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-5 shadow-lg mb-4 flex items-center justify-between shrink-0">
             <div>
-                <p class="text-sm font-medium text-blue-100 uppercase tracking-wider">Right Now</p>
-                <h2 id="current-temp" class="text-5xl font-extrabold mt-2 text-white">--°C</h2>
-                <p id="current-condition" class="text-base text-blue-100 mt-1 font-medium">Loading summary...</p>
+                <p class="text-xs font-medium text-blue-100 uppercase tracking-wider">Right Now</p>
+                <h2 id="current-temp" class="text-4xl font-extrabold mt-1 text-white">--°C</h2>
+                <p id="current-condition" class="text-sm text-blue-100 mt-0.5 font-medium">Loading summary...</p>
             </div>
-            <div id="current-emoji" class="text-6xl drop-shadow-md">⏳</div>
+            <div id="current-emoji" class="text-5xl drop-shadow-md">⏳</div>
         </div>
 
         <!-- Segmented Toggle Control -->
-        <div class="bg-slate-950/60 p-1 rounded-2xl flex mb-6 border border-slate-800">
-            <button id="toggle-12h" class="flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 bg-blue-600 text-white shadow-md">
+        <div class="bg-slate-950/60 p-1 rounded-xl flex mb-4 border border-slate-800 shrink-0">
+            <button id="toggle-12h" class="flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 bg-blue-600 text-white shadow-md">
                 Next 12 Hours
             </button>
-            <button id="toggle-7d" class="flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 text-slate-400 hover:text-slate-200">
+            <button id="toggle-7d" class="flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200">
                 Next 7 Days
             </button>
         </div>
 
         <!-- Forecast Dynamic Container -->
-        <main class="flex-1">
-            <!-- 12 Hours Panel (Horizontal Scroll Layout) -->
-            <div id="panel-12h" class="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-                <!-- Data injected here -->
+        <main class="flex-1 min-h-0">
+            <!-- 12 Hours Panel (Vertical List with Fixed Height + Internal Scroll) -->
+            <div id="panel-12h" class="space-y-2 max-h-[340px] overflow-y-auto no-scrollbar pr-1">
+                <!-- Data dynamically injected here -->
             </div>
 
-            <!-- 7 Days Panel (Vertical List Layout, Hidden by default) -->
-            <div id="panel-7d" class="space-y-3 hidden">
-                <!-- Data injected here -->
+            <!-- 7 Days Panel (Super Compact Vertical List to prevent page scroll) -->
+            <div id="panel-7d" class="space-y-1.5 hidden">
+                <!-- Data dynamically injected here -->
             </div>
         </main>
         
-        <footer class="mt-auto pt-6 text-center text-xs text-slate-500 font-medium">
+        <footer class="mt-auto pt-4 text-center text-[10px] text-slate-500 font-medium shrink-0">
             Powered by Open-Meteo API
         </footer>
     </div>
@@ -95,7 +94,7 @@
                 45: { emoji: '🌫️', desc: 'Foggy' },
                 48: { emoji: '🌫️', desc: 'Rime Fog' },
                 51: { emoji: '🌧️', desc: 'Light Drizzle' },
-                53: { emoji: '🌧️', desc: 'Moderate Drizzle' },
+                53: { emoji: '🌧️', desc: 'Mod. Drizzle' },
                 55: { emoji: '🌧️', desc: 'Dense Drizzle' },
                 61: { emoji: '🌦️', desc: 'Slight Rain' },
                 63: { emoji: '🌧️', desc: 'Moderate Rain' },
@@ -104,10 +103,10 @@
                 73: { emoji: '❄️', desc: 'Moderate Snow' },
                 75: { emoji: '❄️', desc: 'Heavy Snow' },
                 80: { emoji: '🌦️', desc: 'Light Showers' },
-                81: { emoji: '🌧️', desc: 'Moderate Showers' },
+                81: { emoji: '🌧️', desc: 'Mod. Showers' },
                 82: { emoji: '⛈️', desc: 'Heavy Showers' },
                 95: { emoji: '⛈️', desc: 'Thunderstorm' },
-                96: { emoji: '⛈️', desc: 'Thunderstorm + Hail' }
+                96: { emoji: '⛈️', desc: 'Storm + Hail' }
             };
             return mapping[code] || { emoji: '✨', desc: 'Variable' };
         }
@@ -125,12 +124,12 @@
                         await fetchWeather(lat, lon);
                     },
                     (error) => {
-                        showError(`Location Denied: ${error.message}. Please enable location permissions.`);
+                        showError(`Location Denied: ${error.message}. Please check site settings permissions.`);
                     },
                     { enableHighAccuracy: true, timeout: 10000 }
                 );
             } else {
-                showError("Geolocation is unsupported by this browser.");
+                showError("Geolocation setup is completely unsupported by this device browser.");
             }
         });
 
@@ -141,28 +140,25 @@
             const panel7d = document.getElementById('panel-7d');
 
             btn12h.addEventListener('click', () => {
-                btn12h.className = "flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 bg-blue-600 text-white shadow-md";
-                btn7d.className = "flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 text-slate-400 hover:text-slate-200";
+                btn12h.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 bg-blue-600 text-white shadow-md";
+                btn7d.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200";
                 panel12h.classList.remove('hidden');
                 panel7d.classList.add('hidden');
             });
 
             btn7d.addEventListener('click', () => {
-                btn7d.className = "flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 bg-blue-600 text-white shadow-md";
-                btn12h.className = "flex-1 py-3 text-sm font-bold rounded-xl transition-all duration-200 text-slate-400 hover:text-slate-200";
+                btn7d.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 bg-blue-600 text-white shadow-md";
+                btn12h.className = "flex-1 py-2.5 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200";
                 panel7d.classList.remove('hidden');
                 panel12h.classList.add('hidden');
             });
         }
 
         async function fetchWeather(lat, lon) {
-            // FIXED: Removed "time" from the current= parameter string
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
             
             try {
                 const response = await fetch(url);
-                
-                // If the API rejects the call, grab the exact reason why
                 if (!response.ok) {
                     const errorDetails = await response.json();
                     throw new Error(`API Error: ${errorDetails.reason || response.statusText}`);
@@ -170,7 +166,7 @@
                 
                 weatherData = await response.json();
                 
-                // Hide splash loading screen smoothly
+                // Remove loading screen block smoothly
                 document.getElementById('loading-screen').classList.add('opacity-0', 'pointer-events-none');
                 
                 renderCurrentWeather();
@@ -181,7 +177,6 @@
                 showError(err.message);
             }
         }
-
 
         function renderCurrentWeather() {
             const current = weatherData.current;
@@ -196,8 +191,14 @@
             const panel = document.getElementById('panel-12h');
             panel.innerHTML = ''; 
             
-            // Match with Open-Meteo's returned current time string to avoid UTC/Local offset issues
-            const currentHourStr = weatherData.current.time.slice(0, 13); 
+            // Generate clean local string timeline sync
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hour = String(now.getHours()).padStart(2, '0');
+            const currentHourStr = `${year}-${month}-${day}T${hour}:00`;
+
             let startIndex = weatherData.hourly.time.findIndex(t => t.startsWith(currentHourStr));
             if (startIndex === -1) startIndex = 0; 
 
@@ -216,11 +217,15 @@
                 const weather = interpretWeather(code);
 
                 const card = document.createElement('div');
-                card.className = "bg-slate-800/50 border border-slate-800 p-4 rounded-2xl flex flex-col items-center min-w-[76px] text-center flex-shrink-0";
+                // Redesigned as sleek list rows instead of horizontal blocks
+                card.className = "bg-slate-800/40 border border-slate-800/50 py-2.5 px-4 rounded-xl flex items-center justify-between";
                 card.innerHTML = `
-                    <span class="text-xs text-slate-400 font-medium">${hourFormatted}</span>
-                    <span class="text-2xl my-2 drop-shadow-sm">${weather.emoji}</span>
-                    <span class="text-sm font-bold text-white">${Math.round(temp)}°C</span>
+                    <span class="text-xs font-bold text-slate-300 w-16 text-left">${hourFormatted}</span>
+                    <div class="flex items-center gap-2.5 flex-1 justify-start ml-2">
+                        <span class="text-xl">${weather.emoji}</span>
+                        <span class="text-xs text-slate-400 font-medium truncate max-w-[120px]">${weather.desc}</span>
+                    </div>
+                    <span class="text-xs font-black text-white">${Math.round(temp)}°C</span>
                 `;
                 panel.appendChild(card);
             }
@@ -247,19 +252,20 @@
                 const weather = interpretWeather(code);
 
                 const element = document.createElement('div');
-                element.className = "bg-slate-800/40 border border-slate-800/60 p-4 rounded-2xl flex items-center justify-between";
+                // Super compact padding (py-2) ensures all 7 entries fit perfectly inside the phone view window
+                element.className = "bg-slate-800/40 border border-slate-800/50 py-2 px-4 rounded-xl flex items-center justify-between";
                 element.innerHTML = `
-                    <div class="flex flex-col w-16">
-                        <span class="text-sm font-bold text-white">${dayName}</span>
-                        <span class="text-xs text-slate-500 font-medium">${dayNumeric}</span>
+                    <div class="flex flex-col w-14">
+                        <span class="text-xs font-bold text-white">${dayName}</span>
+                        <span class="text-[10px] text-slate-500 font-medium">${dayNumeric}</span>
                     </div>
-                    <div class="flex items-center gap-3 flex-1 justify-start ml-4">
-                        <span class="text-2xl">${weather.emoji}</span>
-                        <span class="text-xs text-slate-400 font-medium">${weather.desc}</span>
+                    <div class="flex items-center gap-2.5 flex-1 justify-start ml-2">
+                        <span class="text-xl">${weather.emoji}</span>
+                        <span class="text-xs text-slate-400 font-medium truncate max-w-[120px]">${weather.desc}</span>
                     </div>
-                    <div class="text-right">
-                        <span class="text-sm font-bold text-white">${Math.round(maxTemp)}°</span>
-                        <span class="text-sm font-semibold text-slate-500 ml-1">${Math.round(minTemp)}°</span>
+                    <div class="text-right text-xs">
+                        <span class="font-bold text-white">${Math.round(maxTemp)}°</span>
+                        <span class="font-semibold text-slate-500 ml-1.5">${Math.round(minTemp)}°</span>
                     </div>
                 `;
                 panel.appendChild(element);
