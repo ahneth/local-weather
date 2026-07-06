@@ -156,11 +156,17 @@
         }
 
         async function fetchWeather(lat, lon) {
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code,time&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+            // FIXED: Removed "time" from the current= parameter string
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
             
             try {
                 const response = await fetch(url);
-                if (!response.ok) throw new Error("Weather API communication error.");
+                
+                // If the API rejects the call, grab the exact reason why
+                if (!response.ok) {
+                    const errorDetails = await response.json();
+                    throw new Error(`API Error: ${errorDetails.reason || response.statusText}`);
+                }
                 
                 weatherData = await response.json();
                 
@@ -175,6 +181,7 @@
                 showError(err.message);
             }
         }
+
 
         function renderCurrentWeather() {
             const current = weatherData.current;
