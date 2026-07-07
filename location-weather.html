@@ -110,12 +110,13 @@
 
             // Trigger fetch when user clicks anywhere on map
             map.on('click', function(e) {
-                updateLocation(e.latlng.lat, e.latlng.lng);
+                const pos = e.latlng.wrap(); // Forces longitude to stay within -180 to 180
+                updateLocation(pos.lat, pos.lng);
             });
 
             // Trigger fetch when user finishes dragging the pin
             marker.on('dragend', function(e) {
-                const pos = marker.getLatLng();
+                const pos = marker.getLatLng().wrap(); // Forces longitude to stay within -180 to 180
                 updateLocation(pos.lat, pos.lng);
             });
 
@@ -216,21 +217,22 @@
             const panel = document.getElementById('panel-12h');
             panel.innerHTML = ''; 
             
-            // Get current local time for the SELECTED timezone, not the user's browser timezone
-            const apiLocalTime = new Date(weatherData.current.time + "Z"); // Open-meteo returns local time as a string.
+            // Sync to the local time of the selected timezone
+            const currentHourStr = weatherData.current.time.slice(0, 13); 
+            let startIndex = weatherData.hourly.time.findIndex(t => t.startsWith(currentHourStr));
+            if (startIndex === -1) startIndex = 0; 
             
-            for (let i = 0; i < 12; i++) {
+            for (let i = startIndex; i < startIndex + 12; i++) {
                 if (!weatherData.hourly.time[i]) break;
 
                 const timeStr = weatherData.hourly.time[i];
                 const temp = weatherData.hourly.temperature_2m[i];
                 const code = weatherData.hourly.weather_code[i];
                 
-                // Parse time string returned by API
                 const dateObj = new Date(timeStr);
                 let hourFormatted = dateObj.toLocaleTimeString([], { hour: '2-digit', hour12: true });
 
-                if (i === 0) hourFormatted = "Now";
+                if (i === startIndex) hourFormatted = "Now";
 
                 const weather = interpretWeather(code);
 
