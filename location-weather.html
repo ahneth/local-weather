@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Weather Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Leaflet.js for Interactive Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Clean up map attribution text for mobile */
+        .leaflet-control-attribution { font-size: 8px !important; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex justify-center">
+
+    <div class="w-full max-w-md bg-slate-900 min-h-screen h-screen shadow-2xl flex flex-col p-5 relative overflow-hidden">
+        
+        <!-- Header -->
+        <header class="mb-4 flex justify-between items-center shrink-0">
+            <div>
+                <h1 class="text-xl font-black tracking-tight text-white flex items-center gap-2">
+                     📍 Location Weather
+                </h1>
+                <p class="text-[11px] text-slate-400 mt-0.5">
+                    <span id="coords-display">Loading area...</span>
+                    <a href="index.html" class="text-blue-400 hover:text-blue-300 ml-1">(local weather)</a>
+                </p>
+            </div>
+        </header>
+
+        <!-- Interactive Map Container -->
+        <div id="map" class="h-40 w-full rounded-2xl mb-4 shrink-0 z-0 shadow-inner border border-slate-700/50"></div>
+
+        <!-- Current Weather Hero Card -->
+        <div class="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-4 shadow-lg mb-4 flex items-center justify-between shrink-0">
+            <div>
+                <p class="text-[10px] font-bold text-blue-200 uppercase tracking-wider">Selected Location</p>
+                <h2 id="current-temp" class="text-3xl font-extrabold mt-0.5 text-white">--°C</h2>
+                <p id="current-condition" class="text-xs text-blue-100 mt-0.5 font-medium">Loading...</p>
+            </div>
+            <div id="current-emoji" class="text-4xl drop-shadow-md">🌍</div>
+        </div>
+
+        <!-- Segmented Toggle Control -->
+        <div class="bg-slate-950/60 p-1 rounded-xl flex mb-3 border border-slate-800 shrink-0">
+            <button id="toggle-12h" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 bg-blue-600 text-white shadow-md">
+                Next 12 Hours
+            </button>
+            <button id="toggle-7d" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200">
+                Next 7 Days
+            </button>
+        </div>
+
+        <!-- Forecast Container -->
+        <main class="flex-1 min-h-0">
+            <div id="panel-12h" class="space-y-1.5 max-h-[250px] overflow-y-auto no-scrollbar pr-1"></div>
+            <div id="panel-7d" class="space-y-1.5 hidden max-h-[250px] overflow-y-auto no-scrollbar pr-1"></div>
+        </main>
+        
+        <p id="error-message" class="text-red-400 mt-2 text-xs hidden text-center"></p>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        let weatherData = null;
+        let map, marker;
+        
+        // Default Coordinates: Hong Kong
+        const defaultLat = 22.3193;
+        const defaultLon = 114.1694;
+
+        function interpretWeather(code) {
+            const mapping = {
+                0: { emoji: '☀️', desc: 'Clear Sky' }, 1: { emoji: '🌤️', desc: 'Mainly Clear' },
+                2: { emoji: '⛅', desc: 'Partly Cloudy' }, 3: { emoji: '☁️', desc: 'Overcast' },
+                45: { emoji: '🌫️', desc: 'Foggy' }, 48: { emoji: '🌫️', desc: 'Rime Fog' },
+                51: { emoji: '🌧️', desc: 'Light Drizzle' }, 53: { emoji: '🌧️', desc: 'Mod. Drizzle' },
+                55: { emoji: '🌧️', desc: 'Dense Drizzle' }, 61: { emoji: '🌦️', desc: 'Slight Rain' },
+                63: { emoji: '🌧️', desc: 'Moderate Rain' }, 65: { emoji: '🌧️', desc: 'Heavy Rain' },
+                71: { emoji: '❄️', desc: 'Slight Snow' }, 73: { emoji: '❄️', desc: 'Moderate Snow' },
+                75: { emoji: '❄️', desc: 'Heavy Snow' }, 80: { emoji: '🌦️', desc: 'Light Showers' },
+                81: { emoji: '🌧️', desc: 'Mod. Showers' }, 82: { emoji: '⛈️', desc: 'Heavy Showers' },
+                95: { emoji: '⛈️', desc: 'Thunderstorm' }, 96: { emoji: '⛈️', desc: 'Storm + Hail' }
+            };
+            return mapping[code] || { emoji: '✨', desc: 'Variable' };
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setupToggleButtons();
+            initMap();
+        });
+
+        // Initialize Interactive Map
+        function initMap() {
+            map = L.map('map').setView([defaultLat, defaultLon], 10);
+            
+            // Load free OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+            }).addTo(map);
+
+            // Add draggable pin
+            marker = L.marker([defaultLat, defaultLon], { draggable: true }).addTo(map);
+
+            // Trigger fetch when user clicks anywhere on map
+            map.on('click', function(e) {
+                updateLocation(e.latlng.lat, e.latlng.lng);
+            });
+
+            // Trigger fetch when user finishes dragging the pin
+            marker.on('dragend', function(e) {
+                const pos = marker.getLatLng();
+                updateLocation(pos.lat, pos.lng);
+            });
+
+            // Run initial load for Hong Kong
+            updateLocation(defaultLat, defaultLon);
+        }
+
+        async function updateLocation(lat, lon) {
+            // Snap marker to new location
+            marker.setLatLng([lat, lon]);
+            map.setView([lat, lon]);
+            
+            document.getElementById('coords-display').innerText = "Analyzing region...";
+            document.getElementById('error-message').classList.add('hidden');
+            
+            await Promise.all([
+                fetchWeather(lat, lon),
+                fetchLocationName(lat, lon)
+            ]);
+        }
+
+        async function fetchLocationName(lat, lon) {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data && data.address) {
+                    const addr = data.address;
+                    const localName = addr.neighbourhood || addr.suburb || addr.city_district || addr.city || addr.town || addr.village;
+                    const regionName = addr.city || addr.state || addr.country;
+                    
+                    if (localName === regionName) {
+                        document.getElementById('coords-display').innerText = localName;
+                    } else {
+                        document.getElementById('coords-display').innerText = `${localName}, ${regionName}`;
+                    }
+                } else {
+                    // Fallback to coordinates if dropped in the middle of the ocean
+                    document.getElementById('coords-display').innerText = `Lat: ${lat.toFixed(2)} / Lon: ${lon.toFixed(2)}`;
+                }
+            } catch (err) {
+                document.getElementById('coords-display').innerText = `Lat: ${lat.toFixed(2)} / Lon: ${lon.toFixed(2)}`;
+            }
+        }
+
+        function setupToggleButtons() {
+            const btn12h = document.getElementById('toggle-12h');
+            const btn7d = document.getElementById('toggle-7d');
+            const panel12h = document.getElementById('panel-12h');
+            const panel7d = document.getElementById('panel-7d');
+
+            btn12h.addEventListener('click', () => {
+                btn12h.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 bg-blue-600 text-white shadow-md";
+                btn7d.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200";
+                panel12h.classList.remove('hidden');
+                panel7d.classList.add('hidden');
+            });
+
+            btn7d.addEventListener('click', () => {
+                btn7d.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 bg-blue-600 text-white shadow-md";
+                btn12h.className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all duration-200 text-slate-400 hover:text-slate-200";
+                panel7d.classList.remove('hidden');
+                panel12h.classList.add('hidden');
+            });
+        }
+
+        async function fetchWeather(lat, lon) {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`;
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("API Error");
+                
+                weatherData = await response.json();
+                
+                renderCurrentWeather();
+                renderHourlyForecast();
+                renderDailyForecast();
+                
+            } catch (err) {
+                const errEl = document.getElementById('error-message');
+                errEl.innerText = "Could not fetch weather for this specific location.";
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        function renderCurrentWeather() {
+            const current = weatherData.current;
+            const status = interpretWeather(current.weather_code);
+            
+            document.getElementById('current-temp').innerText = `${Math.round(current.temperature_2m)}°C`;
+            document.getElementById('current-condition').innerText = status.desc;
+            document.getElementById('current-emoji').innerText = status.emoji;
+        }
+
+        function renderHourlyForecast() {
+            const panel = document.getElementById('panel-12h');
+            panel.innerHTML = ''; 
+            
+            // Get current local time for the SELECTED timezone, not the user's browser timezone
+            const apiLocalTime = new Date(weatherData.current.time + "Z"); // Open-meteo returns local time as a string.
+            
+            for (let i = 0; i < 12; i++) {
+                if (!weatherData.hourly.time[i]) break;
+
+                const timeStr = weatherData.hourly.time[i];
+                const temp = weatherData.hourly.temperature_2m[i];
+                const code = weatherData.hourly.weather_code[i];
+                
+                // Parse time string returned by API
+                const dateObj = new Date(timeStr);
+                let hourFormatted = dateObj.toLocaleTimeString([], { hour: '2-digit', hour12: true });
+
+                if (i === 0) hourFormatted = "Now";
+
+                const weather = interpretWeather(code);
+
+                const card = document.createElement('div');
+                card.className = "bg-slate-800/40 border border-slate-800/50 py-2 px-3 rounded-xl flex items-center justify-between";
+                card.innerHTML = `
+                    <span class="text-[11px] font-bold text-slate-300 w-14 text-left">${hourFormatted}</span>
+                    <div class="flex items-center gap-2 flex-1 justify-start ml-2">
+                        <span class="text-lg">${weather.emoji}</span>
+                        <span class="text-[11px] text-slate-400 font-medium truncate max-w-[100px]">${weather.desc}</span>
+                    </div>
+                    <span class="text-xs font-black text-white">${Math.round(temp)}°C</span>
+                `;
+                panel.appendChild(card);
+            }
+        }
+
+        function renderDailyForecast() {
+            const panel = document.getElementById('panel-7d');
+            panel.innerHTML = ''; 
+            
+            const daysData = weatherData.daily;
+
+            for (let i = 0; i < daysData.time.length; i++) {
+                const rawDate = daysData.time[i];
+                const maxTemp = daysData.temperature_2m_max[i];
+                const minTemp = daysData.temperature_2m_min[i];
+                const code = daysData.weather_code[i];
+
+                const dateObj = new Date(rawDate);
+                let dayName = dateObj.toLocaleDateString([], { weekday: 'short' });
+                let dayNumeric = dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' });
+
+                if (i === 0) dayName = "Today";
+
+                const weather = interpretWeather(code);
+
+                const element = document.createElement('div');
+                element.className = "bg-slate-800/40 border border-slate-800/50 py-1.5 px-3 rounded-xl flex items-center justify-between";
+                element.innerHTML = `
+                    <div class="flex flex-col w-12">
+                        <span class="text-[11px] font-bold text-white">${dayName}</span>
+                        <span class="text-[9px] text-slate-500 font-medium">${dayNumeric}</span>
+                    </div>
+                    <div class="flex items-center gap-2 flex-1 justify-start ml-2">
+                        <span class="text-lg">${weather.emoji}</span>
+                        <span class="text-[11px] text-slate-400 font-medium truncate max-w-[100px]">${weather.desc}</span>
+                    </div>
+                    <div class="text-right text-[11px]">
+                        <span class="font-bold text-white">${Math.round(maxTemp)}°</span>
+                        <span class="font-semibold text-slate-500 ml-1">${Math.round(minTemp)}°</span>
+                    </div>
+                `;
+                panel.appendChild(element);
+            }
+        }
+    </script>
+</body>
+</html>
